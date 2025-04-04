@@ -1,7 +1,7 @@
 from flask import Blueprint, jsonify, send_file
-from dust_visualize import visualization
-from seoul_visualize import visualize_seoul_air_quality
-from seoul_dust import pollutant
+from backend.data.dust_visualize import visualization
+from backend.data.seoul_visualize import visualize_seoul_air_quality
+from backend.data.seoul_dust import pollutant
 
 api_blueprint = Blueprint("api", __name__)
 

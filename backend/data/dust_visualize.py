@@ -30,7 +30,6 @@ def fetch_data(item_code):
 
     return data.get('response', {}).get('body', {}).get('items', {}).get('item', [])
 
-
 # 시각화 함수
 def visualization(item_code):
     """미세먼지 데이터를 지도에 시각화하는 함수"""
