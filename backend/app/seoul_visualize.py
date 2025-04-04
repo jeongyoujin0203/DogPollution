@@ -4,7 +4,7 @@ import folium
 import requests
 
 # API 키
-API_KEY = ''
+API_KEY = '6b67705043796f7535306673774764'
 
 # 서울 행정구역 GeoJSON
 SEOUL_GEOJSON = 'https://raw.githubusercontent.com/southkorea/seoul-maps/master/kostat/2013/json/seoul_municipalities_geo_simple.json'
@@ -63,7 +63,7 @@ def visualize_seoul_air_quality(pollutant):
     ).add_to(m)
 
     # 지도 저장
-    file_name = f'seoul_air_quality_{pollutant}.html'
+    file_name = f'seoul_dust_Map_{pollutant}.html'
     m.save(file_name)
     print(f"서울 {pollutant} 미세먼지 지도 생성 완료: {file_name}")
 
