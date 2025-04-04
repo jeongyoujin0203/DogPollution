@@ -4,7 +4,7 @@ from flask_cors import CORS
 from threading import Lock
 
 async_mode = None
-app = Flask(__name__, static_folder='react-app/build') # Change your react-app name 'my-react-app'
+app = Flask(__name__, static_folder='frontend/build') # Change your frontend name 'my-frontend'
 app.config['SECRET_KEY'] = 'secret!'
 thread_lock = Lock()
 CORS(app)

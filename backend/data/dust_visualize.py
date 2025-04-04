@@ -5,7 +5,7 @@ import xmltodict
 import folium
 
 # API 키
-API_KEY = ''
+API_KEY = 'NJYC1dEe%2Fs39fDNJdiJY4SNdYXhUohF7SYGftskQS2EFuJv8a%2FlAKRz4Bs50HK8PkFVXoavfYsbMg2%2F5BSVtPQ%3D%3D'
 
 # 대한민국 행정구역 GeoJson
 geo_json = 'https://raw.githubusercontent.com/southkorea/southkorea-maps/master/kostat/2013/json/skorea_provinces_geo_simple.json'
@@ -29,7 +29,6 @@ def fetch_data(item_code):
     data = xmltodict.parse(results)
 
     return data.get('response', {}).get('body', {}).get('items', {}).get('item', [])
-
 
 # 시각화 함수
 def visualization(item_code):
@@ -70,7 +69,7 @@ def visualization(item_code):
     ).add_to(m)
 
     # 파일 저장
-    file_name = f'dustMap_{item_code}.html'
+    file_name = f'dust_Map_{item_code}.html'
     m.save(file_name)
     print(f"{file_name} 파일이 생성되었습니다.")
 
