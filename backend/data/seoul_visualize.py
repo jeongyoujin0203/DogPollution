@@ -5,7 +5,7 @@ import requests
 from flask import Blueprint, request, Response
 
 # API 키
-API_KEY = '6b67705043796f7535306673774764'
+API_KEY = ''
 
 # 서울 행정구역 GeoJSON
 SEOUL_GEOJSON = 'https://raw.githubusercontent.com/southkorea/seoul-maps/master/kostat/2013/json/seoul_municipalities_geo_simple.json'
