@@ -4,7 +4,7 @@ import xmltodict
 import requests
 
 # API 키
-API_KEY = '6b67705043796f7535306673774764'
+API_KEY = ''
 
 
 # 데이터 요청 함수

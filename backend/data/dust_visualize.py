@@ -6,7 +6,7 @@ import folium
 from flask import Blueprint, request, Response
 
 # API 키
-API_KEY = 'NJYC1dEe%2Fs39fDNJdiJY4SNdYXhUohF7SYGftskQS2EFu%2FlAKRz4Bs50HK8PkFVXoavfYsbMg2%2F5BSVtPQ%3D%3D'
+API_KEY = ''
 
 # 대한민국 행정구역 GeoJSON
 GEO_JSON = 'https://raw.githubusercontent.com/southkorea/southkorea-maps/master/kostat/2013/json/skorea_provinces_geo_simple.json'
