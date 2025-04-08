@@ -1,11 +1,16 @@
 version: '3'
 services:
   frontend:
-    build: ./frontend
+    build:
+      context: ./frontend
     ports:
-      - "3000:3000"
-    depends_on:
-      - backend
+      - '5173:5173'
+    volumes:
+      - ./frontend:/app
+      - /app/node_modules
+    environment:
+      - NODE_ENV=development
+
 
   backend:
     build: ./backend
