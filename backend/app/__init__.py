@@ -1,28 +1,37 @@
 """
 Flask 애플리케이션 초기화 및 Blueprint 등록 모듈
-- app/config.py: 애플리케이션 설정을 불러옴
+- CORS 설정을 추가하여 프론트엔드 도메인에서 API 호출을 허용
+- app/config.py: 애플리케이션 설정 불러오기
 - app/routes.py: 기본 공통 라우트 정의
 - app/error_handlers.py: 에러 핸들러 등록
-- data 폴더 내의 모듈들: 각 기능별 API 엔드포인트(BluePrint)를 등록
+- data 패키지 내 모듈: 각 기능별 API 엔드포인트(BluePrint) 등록
 """
 from flask import Flask
+from flask_cors import CORS
 from .config import Config
 from .routes import main
 from .error_handlers import register_error_handlers
 
-# data 폴더 내 Blueprint 임포트
+# data 패키지 내 Blueprint 임포트
 from ..data.seoul_visualize import seoul_viz_bp
 from ..data.dust_visualize import dust_viz_bp
 from ..data.expert_advice import expert_advice_bp
 from ..data.walking_places import walking_places_bp
 from ..data.pet_cafe_info import pet_cafe_info_bp
 from ..data.cafe_reviews import cafe_reviews_bp
+from ..data.kakao_notify import kakao_notify_bp
+from ..data.subscription_api import subscription_bp
+
 
 def create_app():
     """
-    Flask 애플리케이션 초기화 및 구성 함수
+    Flask 애플리케이션 초기화 및 Blueprint 등록 함수
     """
     app = Flask(__name__)
+    # CORS 설정: 모든 도메인에서 '/api/*' 경로 호출 허용
+    CORS(app, resources={r"/api/*": {"origins": "*"}})
+
+    # 설정 로드
     app.config.from_object(Config)
 
     # 기본 라우트 등록
@@ -35,13 +44,15 @@ def create_app():
     app.register_blueprint(walking_places_bp)
     app.register_blueprint(pet_cafe_info_bp)
     app.register_blueprint(cafe_reviews_bp)
+    app.register_blueprint(kakao_notify_bp)
+    app.register_blueprint(subscription_bp)
 
     # 에러 핸들러 등록
     register_error_handlers(app)
 
     return app
 
+
 if __name__ == '__main__':
     app = create_app()
-    # 개발 환경: 호스트 0.0.0.0, 포트 5000, 디버그 모드 활성화
     app.run(host='0.0.0.0', port=5000, debug=True)
