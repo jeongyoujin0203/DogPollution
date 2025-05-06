@@ -1,15 +1,20 @@
-import { useEffect, useState } from 'react'
+import { BrowserRouter, Routes, Route } from 'react-router-dom';
+import MainPage from './pages/MainPage';
+import PlaceRecPage from './pages/PlaceRecPage';
+import ManageGuidePage from './pages/ManageGuidePage';
+import FineDustStats from './pages/FineDustStats';
 
 function App() {
-    const [message, setMessage] = useState('Loading...')
-
-    useEffect(() => {
-        fetch('/api/hello')
-            .then((res) => res.json())
-            .then((data) => setMessage(data.message))
-    }, [])
-
-    return <h1>{message}</h1>
+    return (
+        <BrowserRouter>
+            <Routes>
+                <Route path="/" element={<MainPage />} />
+                <Route path="/placerec" element={<PlaceRecPage />} />
+                <Route path="/manageguide" element={<ManageGuidePage />} />
+                <Route path="/stats" element={<FineDustStats />} />
+            </Routes>
+        </BrowserRouter>
+    );
 }
 
-export default App
+export default App;
