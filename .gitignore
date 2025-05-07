@@ -7,10 +7,22 @@ yarn-error.log*
 pnpm-debug.log*
 lerna-debug.log*
 
-node_modules
-dist
-dist-ssr
+node_modules/
+frontend/node_modules/
+dist/
+dist-ssr/
+.vite/
 *.local
+*.tsbuildinfo
+frontend/.env
+
+__pycache__/
+*.py[cod]
+*.sqlite3
+*.db
+.env
+backend/.env
+venv/
 
 # Editor directories and files
 .vscode/*
@@ -22,6 +34,4 @@ dist-ssr
 *.njsproj
 *.sln
 *.sw?
-.envfrontend/.env
-frontend/.env
 frontend/.env
