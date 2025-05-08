@@ -22,7 +22,7 @@ interface AirQualityRow {
 const years = Array.from({ length: 15 }, (_, i) => (2011 + i).toString());
 const months = Array.from({ length: 12 }, (_, i) => (i + 1).toString().padStart(2, '0'));
 
-const API_KEY = '5067505a71776b643633616f65486a'; // 본인 인증키 입력
+const API_KEY = import.meta.env.VITE_AIR_QUALITY_API_KEY; // 본인 인증키 입력
 
 const FineDustPage_monthly = () => {
     const [year, setYear] = useState('2024');

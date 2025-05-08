@@ -1,7 +1,7 @@
 import axios from 'axios';
 import { AirQualityRow } from '../types/AirQuality.d.ts';
 
-const API_KEY = '5067505a71776b643633616f65486a'; // 실제 발급받은 키로 변경
+const API_KEY = import.meta.env.VITE_AIR_QUALITY_API_KEY;
 const BASE_URL = 'http://openAPI.seoul.go.kr:8088';
 
 export const fetchAirQuality = async (year: string): Promise<AirQualityRow[]> => {

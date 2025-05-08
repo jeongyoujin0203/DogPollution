@@ -8,9 +8,9 @@ import normalDog from '../assets/normal_dog.png';
 import sadDog from '../assets/sad_dog.png';
 
 const SEOUL_CENTER = [37.5665, 126.978];
-const API_KEY = '5067505a71776b643633616f65486a';
+const API_KEY = import.meta.env.VITE_AIR_QUALITY_API_KEY;
 const ENDPOINT = 'http://openAPI.seoul.go.kr:8088';
-const KAKAO_REST_API_KEY = 'ef223701d7a1605b81b70e9beae40dc3';
+const KAKAO_REST_API_KEY = import.meta.env.VITE_KAKAO_REST_API_KEY;
 
 async function fetchAirData() {
     const url = `${ENDPOINT}/${API_KEY}/json/ListAirQualityByDistrictService/1/25/`;

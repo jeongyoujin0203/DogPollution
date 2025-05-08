@@ -1,6 +1,6 @@
 // src/utils/airUtils.ts
 
-const API_KEY = '5067505a71776b643633616f65486a'; // 실제 발급받은 키를 사용하세요
+const API_KEY = import.meta.env.VITE_AIR_QUALITY_API_KEY; // 실제 발급받은 키를 사용하세요
 
 const getGrade = (pm10: number): string => {
     if (pm10 <= 30) return '좋음';

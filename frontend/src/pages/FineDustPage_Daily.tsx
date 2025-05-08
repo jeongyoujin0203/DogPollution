@@ -14,7 +14,7 @@ import {
 
 ChartJS.register(CategoryScale, LinearScale, BarElement, Title, Tooltip, Legend);
 
-const API_KEY = "5067505a71776b643633616f65486a";
+const API_KEY = import.meta.env.VITE_AIR_QUALITY_API_KEY;
 
 const FineDustPage_Daily = () => {
     const [selectedDate, setSelectedDate] = useState("20250101");
