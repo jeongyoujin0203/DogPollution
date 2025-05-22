@@ -159,7 +159,68 @@
   }
   ```
 
-## 5. 구독(알림) 관리
+## 5. 미세먼지 통계 API
+### 5-1. 서울시 구별 월별 통계
+**GET** `/api/dust/history/monthly?year={YYYY}&pollutant={PM10|PM25}`
+
+* **Query Parameter**
+  * `year (필수)`: 조회할 연도, 예: 2025
+
+  * `pollutant (필수)`: PM10 또는 PM25
+
+#### Response 예시
+
+```json
+{
+  "year": "2025",
+  "pollutant": "PM10",
+  "data": [
+    {
+      "region": "종로구",
+      "monthly": [45.2, 50.1, 55.3, …, 40.0]
+    },
+    {
+      "region": "중구",
+      "monthly": [47.0, 49.2, 53.8, …, 42.5]
+    }
+    // …
+  ]
+}
+```
+
+### 5-2. 서울시 구별 연별 통계
+**GET** `/api/dust/seoul/history/yearly?start_year={YYYY}&end_year={YYYY}&pollutant={PM10|PM25}`
+
+* **Query Parameter**
+  * `start_year (필수)`: 시작 연도, 예: 2023
+
+  * `end_year (필수)`: 종료 연도, 예: 2025
+ 
+  * `pollutant (필수)`: PM10 또는 PM25
+
+#### Response 예시
+
+```json
+{
+  "start_year": "2023",
+  "end_year": "2025",
+  "pollutant": "PM25",
+  "years": ["2023", "2024", "2025"],
+  "data": [
+    {
+      "region": "종로구",
+      "yearly": [48.5, 47.2, 46.1]
+    },
+    {
+      "region": "중구",
+      "yearly": [49.0, 48.0, 47.5]
+    }
+    // …
+  ]
+}
+```
+
+## 6. 구독(알림) 관리
 
 **POST** `/api/customers`
 **GET** `/api/customers`
@@ -211,7 +272,7 @@
   { "message": "구독 해지 완료" }
   ```
 
-## 6. 카카오톡 알림 발송
+## 7. 카카오톡 알림 발송
 
 **POST** `/api/notify/kakao`
 
@@ -231,64 +292,3 @@
     "result": { /* 카카오 API 응답 */ }
   }
   ```
-
-## 7. 미세먼지 통계 API
-### 7-1. 서울시 구별 월별 통계
-**GET** `/api/dust/history/monthly?year={YYYY}&pollutant={PM10|PM25}`
-
-* **Query Parameter**
-  * `year (필수)`: 조회할 연도, 예: 2025
-
-  * `pollutant (필수)`: PM10 또는 PM25
-
-#### Response 예시
-
-```json
-{
-  "year": "2025",
-  "pollutant": "PM10",
-  "data": [
-    {
-      "region": "종로구",
-      "monthly": [45.2, 50.1, 55.3, …, 40.0]
-    },
-    {
-      "region": "중구",
-      "monthly": [47.0, 49.2, 53.8, …, 42.5]
-    }
-    // …
-  ]
-}
-```
-
-### 7-2. 서울시 구별 연별 통계
-**GET** `/api/dust/seoul/history/yearly?start_year={YYYY}&end_year={YYYY}&pollutant={PM10|PM25}`
-
-* **Query Parameter**
-  * `start_year (필수)`: 시작 연도, 예: 2023
-
-  * `end_year (필수)`: 종료 연도, 예: 2025
- 
-  * `pollutant (필수)`: PM10 또는 PM25
-
-#### Response 예시
-
-```json
-{
-  "start_year": "2023",
-  "end_year": "2025",
-  "pollutant": "PM25",
-  "years": ["2023", "2024", "2025"],
-  "data": [
-    {
-      "region": "종로구",
-      "yearly": [48.5, 47.2, 46.1]
-    },
-    {
-      "region": "중구",
-      "yearly": [49.0, 48.0, 47.5]
-    }
-    // …
-  ]
-}
-```
