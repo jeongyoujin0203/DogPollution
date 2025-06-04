@@ -76,7 +76,7 @@
 
 #### 1. 실시간 미세먼지 지도 시각화
 
-![미세먼지 지도](docs/screenshots/pm-map.png)
+![미세먼지 지도](docs/screenshots/pm-map.jpg)
 
 > * 좌측: 현재 위치(예: 강남구) 실시간 농도 및 “산책하기 좋은 날이에요!” 메시지
 > * 우측: Leaflet 기반 서울시 행정구역별 PM2.5 수치 레이어
