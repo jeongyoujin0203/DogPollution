@@ -6,7 +6,7 @@
 import json
 import requests
 from flask import Blueprint, request, jsonify
-from app.config import Config
+from ..app.config import Config
 
 # 카카오톡 메시지 전송 API URL
 KAKAO_API_URL = "https://kapi.kakao.com/v2/api/talk/memo/default/send"

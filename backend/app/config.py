@@ -21,6 +21,10 @@ class Config:
 
     # 서울시 미세먼지 API 키
     SEOUL_API_KEY = os.getenv('SEOUL_API_KEY')
+    
+    # AirKorea 전국 측정소 실시간 미세먼지 API 키
+    SECRET_KEY = os.getenv("SECRET_KEY", "dev-secret-key")
+    SQLALCHEMY_DATABASE_URI = os.getenv("DATABASE_URI", "sqlite:///app.db")
 
     # 고객 DB 경로
     CUSTOMER_DB_PATH = os.getenv(
