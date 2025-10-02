@@ -5,31 +5,31 @@
 import os
 from dotenv import load_dotenv
 
-# .env 파일 로드 (프로젝트 루트에 위치)
-base_dir = os.path.abspath(os.path.join(os.path.dirname(__file__), '..'))
-env_path = os.path.join(base_dir, '.env')
-load_dotenv(dotenv_path=env_path)
+# .env 파일 로드
+load_dotenv()
+
+basedir = os.path.abspath(os.path.dirname(__file__))
 
 class Config:
-    # 기본 설정
-    DEBUG = os.getenv('DEBUG', 'False').lower() in ('true', '1', 'yes')
-    SECRET_KEY = os.getenv('SECRET_KEY', 'change-this-secret')
+    # Flask 기본 설정
+    SECRET_KEY = os.getenv("SECRET_KEY", "dev-secret")
 
-    # Kakao 설정
-    KAKAO_ACCESS_TOKEN = os.getenv('KAKAO_ACCESS_TOKEN')
-    FRONTEND_URL = os.getenv('FRONTEND_URL')
-
-    # 서울시 미세먼지 API 키
-    SEOUL_API_KEY = os.getenv('SEOUL_API_KEY')
-
-    # 고객 DB 경로
-    CUSTOMER_DB_PATH = os.getenv(
-        'CUSTOMER_DB_PATH',
-        os.path.join(base_dir, 'data', 'customers.db')
+    # SQLAlchemy DB (기본은 backend/app.db)
+    SQLALCHEMY_DATABASE_URI = os.getenv(
+        "DATABASE_URL",
+        f"sqlite:///{os.path.join(basedir, 'app.db')}"
     )
+    SQLALCHEMY_TRACK_MODIFICATIONS = False
 
-    # 기타 DB 경로
-    REVIEWS_DB_PATH = os.getenv(
-        'REVIEWS_DB_PATH',
-        os.path.join(base_dir, 'data', 'cafes_reviews.db')
-    )
+    # 외부 API Key
+    AIRKOREA_SERVICE_KEY = os.getenv("AIRKOREA_SERVICE_KEY")
+    SEOUL_API_KEY = os.getenv("SEOUL_API_KEY")
+    KAKAO_ADMIN_KEY = os.getenv("KAKAO_ADMIN_KEY")   # Kakao 지도/좌표 API
+    KAKAO_ACCESS_TOKEN = os.getenv("KAKAO_ACCESS_TOKEN")  # Kakao 알림톡 API
+
+    # 프론트엔드 URL
+    FRONTEND_URL = os.getenv("FRONTEND_URL", "http://localhost:3000")
+
+    # 기타 경로 (직접 사용하는 모듈에서 가져다 씀)
+    CUSTOMER_DB_PATH = os.getenv("CUSTOMER_DB_PATH")
+    REVIEWS_DB_PATH = os.getenv("REVIEWS_DB_PATH")

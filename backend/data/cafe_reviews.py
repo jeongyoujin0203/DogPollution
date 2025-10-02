@@ -1,96 +1,77 @@
-# backend/data/cafe_reviews.py
 """
-애견카페 리뷰 및 별점 저장·조회 모듈 (SQLite 기반)
-- review 테이블에 별점(rating)과 리뷰(review_text)를 저장
-- Flask Blueprint를 통해 API 제공
+카페 리뷰 API
+- 경로 우선순위: os.environ['REVIEWS_DB_PATH'] -> current_app.config['REVIEWS_DB_PATH'] -> data/cafe_reviews.db
+- DB 초기화는 블루프린트 등록 시점에 1회만 실행 (record_once)
 """
+from flask import Blueprint, request, jsonify, current_app
+from flask_login import login_required, current_user
 import sqlite3
-import os
 from datetime import datetime
-from flask import Blueprint, request, jsonify
+import os
 
-# DB 경로 설정
-BASE_DIR = os.path.abspath(os.path.dirname(__file__))
-DB_PATH = os.path.join(BASE_DIR, 'cafes_reviews.db')
+cafe_reviews_bp = Blueprint("cafe_reviews_bp", __name__, url_prefix="/api/cafe_reviews")
 
-# 데이터베이스 초기화
-def init_db():
-    conn = sqlite3.connect(DB_PATH)
-    c = conn.cursor()
-    c.execute('''
-        CREATE TABLE IF NOT EXISTS reviews (
-            id INTEGER PRIMARY KEY AUTOINCREMENT,
-            cafe_name TEXT NOT NULL,
-            rating INTEGER NOT NULL CHECK(rating BETWEEN 1 AND 5),
-            review_text TEXT NOT NULL,
-            created_at TEXT NOT NULL
-        )
-    ''')
-    conn.commit()
-    conn.close()
-
-# 리뷰 추가 함수
-def add_review(cafe_name, rating, review_text):
-    conn = sqlite3.connect(DB_PATH)
-    c = conn.cursor()
-    now = datetime.utcnow().isoformat()
-    c.execute('''
-        INSERT INTO reviews (cafe_name, rating, review_text, created_at)
-        VALUES (?, ?, ?, ?)
-    ''', (cafe_name, rating, review_text, now))
-    conn.commit()
-    conn.close()
-
-# 특정 카페 리뷰 조회 함수
-def get_reviews(cafe_name):
-    conn = sqlite3.connect(DB_PATH)
-    c = conn.cursor()
-    c.execute('''
-        SELECT rating, review_text, created_at
-        FROM reviews
-        WHERE cafe_name = ?
-        ORDER BY created_at DESC
-    ''', (cafe_name,))
-    rows = c.fetchall()
-    conn.close()
-    # dict 형태로 반환
-    return [
-        {"rating": r[0], "review": r[1], "created_at": r[2]}
-        for r in rows
-    ]
-
-# Flask Blueprint 정의
-cafe_reviews_bp = Blueprint('cafe_reviews_bp', __name__)
-
-# DB 초기화
-init_db()
-
-@cafe_reviews_bp.route('/api/cafe_reviews/<cafe_name>', methods=['GET'])
-def fetch_reviews(cafe_name):
+def _db_path() -> str:
     """
-    GET: 해당 애견카페의 리뷰 리스트 반환
-    URL 경로 변수: cafe_name
+    .env / app.config 기반 경로 결정
     """
-    reviews = get_reviews(cafe_name)
+    base_default = os.path.join(os.path.abspath(os.path.dirname(__file__)), "cafe_reviews.db")
+    path = (os.getenv("REVIEWS_DB_PATH")
+            or (current_app.config.get("REVIEWS_DB_PATH") if current_app else None)
+            or base_default)
+    os.makedirs(os.path.dirname(path), exist_ok=True)
+    return path
+
+def _init_db(path: str) -> None:
+    with sqlite3.connect(path) as conn:
+        c = conn.cursor()
+        c.execute("""
+            CREATE TABLE IF NOT EXISTS reviews (
+                id INTEGER PRIMARY KEY AUTOINCREMENT,
+                user_id INTEGER NOT NULL,
+                cafe_name TEXT NOT NULL,
+                rating INTEGER NOT NULL,
+                review_text TEXT NOT NULL,
+                created_at TEXT NOT NULL
+            )
+        """)
+        conn.commit()
+
+@cafe_reviews_bp.record_once
+def _init_on_register(setup_state):
+    _init_db(_db_path())
+
+@cafe_reviews_bp.get("/<cafe_name>")
+@login_required
+def get_reviews(cafe_name: str):
+    with sqlite3.connect(_db_path()) as conn:
+        c = conn.cursor()
+        c.execute("""
+            SELECT rating, review_text, created_at
+            FROM reviews
+            WHERE cafe_name=?
+            ORDER BY id DESC
+        """, (cafe_name,))
+        rows = c.fetchall()
     return jsonify({
         "cafe_name": cafe_name,
-        "count": len(reviews),
-        "reviews": reviews
+        "reviews": [{"rating": r[0], "review": r[1], "created_at": r[2]} for r in rows]
     })
 
-@cafe_reviews_bp.route('/api/cafe_reviews/<cafe_name>', methods=['POST'])
-def submit_review(cafe_name):
-    """
-    POST: 해당 애견카페에 별점과 리뷰를 추가
-    요청 JSON 예시: { "rating": 4, "review": "아주 좋아요!" }
-    """
-    data = request.get_json() or {}
-    rating = data.get('rating')
-    review_text = data.get('review')
-    # 입력 검증
-    if not isinstance(rating, int) or not (1 <= rating <= 5):
-        return jsonify({"error": "rating은 1~5 정수여야 합니다."}), 400
-    if not review_text or not isinstance(review_text, str):
-        return jsonify({"error": "review(텍스트)가 필요합니다."}), 400
-    add_review(cafe_name, rating, review_text)
-    return jsonify({"message": "리뷰 등록 성공", "cafe_name": cafe_name}), 201
+@cafe_reviews_bp.post("/<cafe_name>")
+@login_required
+def add_review(cafe_name: str):
+    data = request.get_json(silent=True) or {}
+    rating, review = data.get("rating"), data.get("review")
+    if not isinstance(rating, int) or not review:
+        return jsonify({"code": 400, "message": "rating(int), review(text) 필수"}), 400
+
+    now = datetime.utcnow().isoformat()
+    with sqlite3.connect(_db_path()) as conn:
+        c = conn.cursor()
+        c.execute("""
+            INSERT INTO reviews (user_id, cafe_name, rating, review_text, created_at)
+            VALUES (?, ?, ?, ?, ?)
+        """, (current_user.id, cafe_name, rating, review, now))
+        conn.commit()
+    return jsonify({"message": "리뷰 등록 완료"}), 201
