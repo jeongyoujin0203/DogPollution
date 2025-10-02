@@ -304,7 +304,7 @@ erDiagram
     REVIEW {
       INTEGER id PK
       INTEGER user_id FK
-      TEXT cafe_name  
+      TEXT cafe_name
       INTEGER rating
       TEXT review_text
       TEXT created_at
@@ -330,14 +330,12 @@ erDiagram
       TEXT created_at
     }
 
-    %% 관계 정의
-    USER ||--o{ PET : "has"
-    USER ||--o{ REVIEW : "writes"
-    CAFE ||--o{ REVIEW : "receives"
-    USER ||--o{ SUBSCRIPTION : "subscribes"
-```
+    USER ||--o{ PET : has
+    USER ||--o{ REVIEW : writes
+    CAFE ||--o{ REVIEW : receives
+    USER ||--o{ SUBSCRIPTION : subscribes
 
-> 참고: `CAFE.name`과 `REVIEW.cafe_name`은 현재 문자열 기반 매핑(코드 기준). 추후 `cafe_id` FK로 정규화하면 무결성이 강화됩니다.
+```
 
 ---
 
@@ -347,22 +345,23 @@ erDiagram
 
 ```mermaid
 flowchart TD
-    A[Client: /api/home/summary?lat&lon&pm10&pm25&sensitivity] --> B{pm10/pm25 직접 전달?}
-    B -- 예 --> C[WHO 기준 등급/색상 계산]
-    C --> D[민감도(sensitivity) 반영해 OK/CAUTION/AVOID]
-    D --> E{lat/lon 존재?}
-    E -- 예 --> F[실외 추천: walking_places.search_walking_places]
-    E -- 예 --> G[실내 추천: pet_cafe_db.get_cafes_by_location]
-    E -- 아니오 --> H[추천 비우기]
-    F --> I[요약 payload 조립 + 캐시 헤더]
+    A[Client: /api/home/summary?lat&lon&pm10&pm25&sensitivity] --> B{PM 값 제공?}
+    B -- 예 --> C[WHO 등급/색상 계산]
+    B -- 아니오 --> J[좌표→요약 get_pm_summary]
+    J --> K{행정구역}
+    K -- 서울 --> K1[서울 25구 스냅샷 평균]
+    K -- 그 외 --> K2[시도 최근 1주 평균]
+    K1 --> C
+    K2 --> C
+    C --> D[민감도 반영 → 결정]
+    D --> E{위치 전달됨?}
+    E -- 예 --> F[실외 추천: walking_places]
+    E -- 예 --> G[실내 추천: pet_cafe_db]
+    E -- 아니오 --> H[추천 없음]
+    F --> I[응답 조립 + 캐시]
     G --> I
     H --> I
 
-    B -- 아니오 --> J[air_summary_service.get_pm_summary(lat, lon)]
-    J -->|서울| K[서울 25개 구 스냅샷 평균]
-    J -->|그 외| L[AirKorea 시도별 최근 1주 평균]
-    K --> C
-    L --> C
 ```
 
 ---
@@ -373,13 +372,14 @@ flowchart TD
 
 ```mermaid
 flowchart TD
-    S[Cron: APScheduler 매시 정각] --> S1[서울 스냅샷 평균(PM10/PM25) 수집]
-    S1 --> S2[customer_db.get_subscribed_customers]
-    S2 --> S3{평균 >= 각 구독자의 threshold?}
-    S3 -- 예 --> S4[kakao_notify.send_kakao_alert]
-    S3 -- 아니오 --> S5[Skip]
-    S4 --> S6[로그/결과 기록]
+    S[APScheduler 매시 정각] --> S1[서울 스냅샷 평균 수집]
+    S1 --> S2[구독자 목록 로드]
+    S2 --> S3{평균 ≥ 임계치?}
+    S3 -- 예 --> S4[카카오 알림 전송]
+    S3 -- 아니오 --> S5[건너뜀]
+    S4 --> S6[로그 기록]
     S5 --> S6
+
 ```
 
 ---
@@ -390,13 +390,11 @@ flowchart TD
 
 ```mermaid
 flowchart TD
-    R1[Client: GET/POST /api/cafe_reviews/<cafe_name>] --> R2{로그인 세션?}
+    R1[GET/POST /api/cafe_reviews/<cafe_name>] --> R2{로그인됨?}
     R2 -- 아니오 --> R3[401 Unauthorized]
-    R2 -- 예 --> R4{GET or POST?}
-    R4 -- GET --> R5[SELECT rating, review_text, created_at FROM reviews WHERE cafe_name]
-    R4 -- POST --> R6[유효성 검사(rating int, review text)]
-    R6 -->|OK| R7[INSERT INTO reviews]
-    R6 -->|오류| R8[400 Bad Request]
-    R5 --> R9[JSON 반환]
-    R7 --> R10[201 Created]
+    R2 -- 예 --> R4{메서드}
+    R4 -- GET --> R5[SELECT ... FROM reviews]
+    R4 -- POST --> R6[검증 OK → INSERT]
+    R6 --> R8[201 Created]
+    R5 --> R7[JSON 반환]
 ```
