@@ -49,368 +49,354 @@ backend/
 
 ## ⚙️ 환경변수(.env)
 
-현재 프로젝트는 이미 동작 중인 `.env`를 사용합니다. *새 키 추가 없이* 아래 값이 존재하면 됩니다.
+다음 키가 필요합니다:
 
 ```
 DEBUG=True
-SECRET_KEY=...
-FRONTEND_URL=...
-KAKAO_ACCESS_TOKEN=...=
-SEOUL_API_KEY=...
-AIRKOREA_SERVICE_KEY=...
-CUSTOMER_DB_PATH=...
-REVIEWS_DB_PATH=...=
+SECRET_KEY=...                # Flask 세션/보안 키
+FRONTEND_URL=...              # CORS 허용할 프론트엔드 도메인
+
+# Kakao 관련
+KAKAO_ACCESS_TOKEN=...        # 카카오 액세스 토큰
+KAKAO_ADMIN_KEY=...           # 카카오 REST API 키
+
+# 공공데이터 API
+SEOUL_API_KEY=...             # 서울시 대기질 API 키
+AIRKOREA_SERVICE_KEY=...      # 에어코리아 API 키 (디코딩 키 권장)
+
+# DB 경로
+CUSTOMER_DB_PATH=...          # 구독자 DB 경로
+REVIEWS_DB_PATH=...           # 리뷰 DB 경로
 ```
 
-> 참고: 에어코리아 키는 **디코딩(일반 문자열) 키**를 권장합니다.
-
-`.env`는 절대 커밋하지 마세요. 필요 시 `.env.example`로 키 이름만 공유하세요.
+> `.env`는 절대 커밋하지 말고 `.env.example`로 키 이름만 공유하세요.
 
 ---
 
-## 🚀 빠른 시작 (Windows PowerShell 예시)
+## 🚀 실행 방법
+
+### 개발 모드 (Windows PowerShell 예시)
 
 ```powershell
-# 0) 가상환경(선택)
+# 가상환경 생성 및 활성화 (선택)
 python -m venv .venv
 . .venv\Scripts\Activate.ps1
 
-# 1) 의존성 설치
+# 패키지 설치
 pip install -r requirements.txt
 
-# 2) 환경변수 파일 확인
-# backend/.env (리포 루트 기준 경로는 팀 규칙에 맞게)
-
-# 3) 개발 서버 실행
+# 서버 실행
 set FLASK_APP=backend/app
 flask run --host=0.0.0.0 --port=5000
 
 # Swagger UI: http://localhost:5000/docs/
 ```
 
-### Docker로 실행
+### Docker 실행
 
 ```bash
 # 이미지 빌드
 docker build -t dogpollution-backend ./backend
 
-# 컨테이너 실행 (포트 5000 노출)
+# 컨테이너 실행
 docker run --env-file ./backend/.env -p 5000:5000 dogpollution-backend
 ```
 
 ---
 
-## 🔌 주요 기능 요약 (전국/모바일 브라우저 대응)
-
-* **전국 확장**: 좌표 → 카카오 역지오코딩으로 전국 시/도·시군구 인식, 에어코리아 실시간 데이터 사용
-* **모바일 브라우저 최적화**: 타임아웃 단축, 경량 응답(JSON 필드 축소), 캐시 헤더 적용
-* **문서화**: Swagger(`/docs/`)로 전체 스펙 확인 가능
-
----
-
-## 📖 API 요약
+## 📖 API 요약 및 상세 예시
 
 > 전체 스펙과 파라미터 상세는 Swagger(`/docs/`) 참고.
 
 ### 1) 대기질 조회
 
-* **서울 구별**: `GET /api/dust/seoul/<PM10|PM25>`
-* **전국 평균**: `GET /api/dust/province/<PM10|PM25>`
-* **전국 요약(시/도별)**: `GET /api/air/summary?sidoName=서울&pollutant=PM10`
-* **내 주변 측정소**: `GET /api/air/nearby?lat=<float>&lon=<float>`
+**서울 구별 조회**  
+`GET /api/dust/seoul/<PM10|PM25>`
 
-### 2) 위치/가이드/요약
-
-* **위치 확인(권한/정확도 대응)**: `GET /api/location/resolve?lat=<f>&lon=<f>&accuracy=<f>`
-* **대기질 매핑(색/아이콘)**: `POST /api/air/visual-map` (body: `{pm10, pm25}`)
-* **산책 가능 여부**: `GET /api/guides/walkability?pm10=&pm25=&sensitivity=`
-* **홈 요약**: `GET /api/home/summary`
-
-### 3) 장소/카페/리뷰
-
-* **산책 장소**: `GET /api/walking_places?lat=&lon=&radius=`
-* **애견카페 정보**: `GET /api/pet_cafe_info?lat=&lon=&radius=`
-* **카페 리뷰**: `GET|POST /api/cafe_reviews/<cafe_name>` (POST는 로그인 필요)
-
-### 4) 사용자/반려견/알림
-
-* **User Profile**: `/api/user_profile/...`
-* **Pet Profiles**: `/api/pet_profiles/...`
-* **내 리뷰**: `/api/reviews/...`
-* **알림 설정**: `/api/notifications/...`
-
-### 5) 더미 상품(데모)
-
-* **목록**: `GET /api/products`
-* **상세**: `GET /api/products/<id>`
-
-
----
-
-## API Documentation
-
----
-
-## 📖 개요
-
-* 모든 API는 `/api/` prefix를 가집니다.
-* 응답은 기본적으로 `application/json` 형식입니다.
-* 오류 발생 시 `{ "code": <int>, "message": "<string>" }` 형식으로 응답합니다.
-* Swagger UI: `http://localhost:5000/docs/`
-
----
-
-## 1) 대기질 조회
-
-### 1-1. 서울 구별 대기질
-
-* **GET** `/api/dust/seoul/<pollutant>`
-* **Path Parameters**
-
-  * `pollutant`: `PM10` 또는 `PM25`
-* **Response**
-
+Response:
 ```json
 {
   "pollutant": "PM10",
-  "items": [
-    { "MSRSTENAME": "종로구", "PM10": 31 },
-    { "MSRSTENAME": "중구",   "PM10": 29 }
+  "data": [
+    { "region": "종로구", "value": 45 },
+    { "region": "중구",   "value": 52 }
   ]
 }
 ```
 
-### 1-2. 전국 평균 대기질
+**전국 평균 조회**  
+`GET /api/dust/province/<PM10|PM25>`
 
-* **GET** `/api/dust/province/<item_code>`
-* **Path Parameters**
-
-  * `item_code`: `PM10` 또는 `PM25`
-* **Response**
-
+Response:
 ```json
 {
   "pollutant": "PM25",
+  "data": [
+    { "region": "서울특별시", "value": 30 },
+    { "region": "부산광역시", "value": 28 }
+  ]
+}
+```
+
+**전국 실시간 측정소 조회**  
+`GET /api/dust/nationwide/realtime`
+
+Response:
+```json
+{
+  "count": 500,
   "items": [
-    { "city": "서울", "value": 15 },
-    { "city": "부산", "value": 18 }
-  ]
-}
-```
-
-### 1-3. 전국 요약 (시/도별)
-
-* **GET** `/api/air/summary`
-* **Query Parameters**
-
-  * `sidoName` *(필수)*: 조회할 시/도 이름 (예: `서울`, `부산`)
-  * `pollutant`: `PM10` 또는 `PM25` (기본: `PM10`)
-* **Response**
-
-```json
-{
-  "level": "sido",
-  "sidoName": "서울",
-  "items": [
-    { "stationName": "종로구", "dataTime": "2025-09-15 14:00", "PM10": 31, "PM25": 15 },
-    { "stationName": "중구",   "dataTime": "2025-09-15 14:00", "PM10": 29, "PM25": 14 }
-  ]
-}
-```
-
-### 1-4. 내 주변 측정소
-
-* **GET** `/api/air/nearby`
-* **Query Parameters**
-
-  * `lat`: 위도 (필수)
-  * `lon`: 경도 (필수)
-* **Response**
-
-```json
-{
-  "items": [
-    { "stationName": "종로구", "addr": "서울시 종로구", "tm": {"x": 200123, "y": 451234} },
-    { "stationName": "중구",   "addr": "서울시 중구",   "tm": {"x": 200223, "y": 451334} }
+    {
+      "stationName": "종로구",
+      "pm10": "45",
+      "pm25": "22",
+      "dataTime": "2025-06-13 14:00"
+    }
   ]
 }
 ```
 
 ---
 
-## 2) 위치 및 시각화 기능
+### 2) 홈 요약 API
 
-### 2-1. 위치 확인
+`GET /api/home/summary?lat={lat}&lon={lon}`
 
-* **GET** `/api/location/resolve`
-* **Query Parameters**
-
-  * `lat`: 위도 (선택)
-  * `lon`: 경도 (선택)
-  * `accuracy`: 정확도(m 단위, 선택)
-* **Response**
-
+Response:
 ```json
 {
-  "status": "ok",
-  "source": "gps",
-  "sido": {"name": "서울특별시"},
-  "sigungu": {"name": "종로구"},
-  "hint": null
-}
-```
-
-### 2-2. 대기질 매핑
-
-* **POST** `/api/air/visual-map`
-* **Request Body**
-
-```json
-{ "pm10": 35, "pm25": 18 }
-```
-
-* **Response**
-
-```json
-{
-  "label": "보통",
-  "level": 1,
-  "color": "#f1c40f",
-  "icon": "walk-caution"
-}
-```
-
-### 2-3. 산책 가능 여부
-
-* **GET** `/api/guides/walkability`
-* **Query Parameters**
-
-  * `pm10`: PM10 값 (필수)
-  * `pm25`: PM2.5 값 (필수)
-  * `sensitivity`: `normal` 또는 `sensitive`
-* **Response**
-
-```json
-{
-  "decision": "CAUTION",
-  "visual": { "label": "보통", "level": 1, "color": "#f1c40f", "icon": "walk-caution" },
-  "tips": ["짧은 산책 권장", "수분 보충"]
-}
-```
-
-### 2-4. 메인 요약
-
-* **GET** `/api/home/summary`
-* **Response**
-
-```json
-{
-  "primary": { "label": "보통", "level": 1, "color": "#f1c40f", "icon": "walk-caution" },
-  "headline": "현재 상태: 보통",
-  "cta": { "text": "산책 가이드 보기", "href": "/guide" },
-  "location": { "area": "종로구", "source": "default" }
-}
-```
-
----
-
-## 3) 장소/카페/리뷰
-
-### 3-1. 산책 장소 추천
-
-* **GET** `/api/walking_places`
-* **Query Parameters**
-
-  * `lat`: 위도 (필수)
-  * `lon`: 경도 (필수)
-  * `radius`: 반경 km (선택, 기본=3)
-* **Response**
-
-```json
-[
-  { "name": "용허리근린공원", "latitude": 37.5678, "longitude": 126.9756 }
-]
-```
-
-### 3-2. 애견카페 정보
-
-* **GET** `/api/pet_cafe_info`
-* **Query Parameters**
-
-  * `lat`: 위도 (필수)
-  * `lon`: 경도 (필수)
-  * `radius`: 반경 km (선택, 기본=5)
-
-### 3-3. 카페 리뷰
-
-* **GET** `/api/cafe_reviews/<cafe_name>` (로그인 필요)
-* **POST** `/api/cafe_reviews/<cafe_name>` (로그인 필요)
-* **Response (GET)**
-
-```json
-{
-  "cafe_name": "멍멍카페",
-  "reviews": [
-    { "rating": 5, "review": "좋아요!", "created_at": "2025-09-15T12:00:00" }
+  "region": "서울특별시",
+  "pm10": 42,
+  "pm25": 18,
+  "air_quality": "보통",
+  "advice": "실외 산책 가능하나 마스크 착용 권장",
+  "recommended": [
+    { "name": "서울숲", "distance_km": 1.2 },
+    { "name": "남산공원", "distance_km": 2.5 }
   ]
 }
 ```
 
 ---
 
-## 4) 사용자/반려견/알림
+### 3) 전문가 가이드
 
-### 4-1. 사용자 프로필
+`GET /api/advice/{pollutant}/{value}`
 
-* **엔드포인트**: `/api/user_profile/...`
-
-### 4-2. 반려견 프로필
-
-* **엔드포인트**: `/api/pet_profiles/...`
-
-### 4-3. 리뷰 관리
-
-* **엔드포인트**: `/api/reviews/...`
-
-### 4-4. 알림 설정
-
-* **엔드포인트**: `/api/notifications/...`
-
-(세부 파라미터와 응답은 Swagger 참고)
+Response:
+```json
+{ "advice": "미세먼지 농도가 높습니다. 외출을 자제하세요." }
+```
 
 ---
 
-## 5) 더미 상품(데모)
+### 4) 산책 장소 추천
 
-### 5-1. 상품 목록
+`GET /api/walking_places?lat={lat}&lon={lon}&radius={km}`
 
-* **GET** `/api/products`
-* **Response**
-
+Response:
 ```json
-[
-  { "id": 1, "name": "강아지 사료", "price": 25000, "image": "/static/images/dogfood.png" },
-  { "id": 2, "name": "산책용 목줄", "price": 15000, "image": "/static/images/leash.png" }
-]
+{
+  "latitude": 37.5665,
+  "longitude": 126.9780,
+  "radius": 3,
+  "places": [
+    { "name": "서울숲", "latitude": 37.544, "longitude": 127.037 },
+    { "name": "남산 공원", "latitude": 37.551, "longitude": 126.988 }
+  ]
+}
 ```
 
-### 5-2. 상품 상세
+---
 
-* **GET** `/api/products/<id>`
-* **Response**
+### 5) 애견카페 정보
 
+`GET /api/pet_cafe_info?lat={lat}&lon={lon}&radius={km}`
+
+Response:
 ```json
-{ "id": 1, "name": "강아지 사료", "price": 25000, "image": "/static/images/dogfood.png" }
+{
+  "latitude": 37.5665,
+  "longitude": 126.9780,
+  "radius_km": 5,
+  "count": 2,
+  "pet_cafes": [
+    {
+      "name": "해피도그카페",
+      "restrictions": "소형견만 입장 가능",
+      "opening_hours": "10:00–20:00",
+      "price": "₩10,000",
+      "rating": 4.5
+    }
+  ]
+}
 ```
+
+---
+
+### 6) 사용자 관리
+
+- **GET** `/api/users/me` → 내 프로필 조회  
+- **PUT** `/api/users/me` → 내 프로필 수정  
+- **PUT** `/api/users/me/password` → 비밀번호 변경  
+- **DELETE** `/api/users/me` → 계정 탈퇴  
+
+---
+
+### 7) 반려견 프로필
+
+- **GET** `/api/users/me/pets` → 반려견 목록  
+- **POST** `/api/users/me/pets` → 반려견 추가  
+- **PUT** `/api/users/me/pets/{pet_id}` → 반려견 수정  
+- **DELETE** `/api/users/me/pets/{pet_id}` → 반려견 삭제  
+
+---
+
+### 8) 리뷰 관리
+
+- **GET** `/api/users/me/reviews` → 내 리뷰 조회  
+- **POST** `/api/places/{place_id}/reviews` → 리뷰 작성  
+- **PUT** `/api/reviews/{review_id}` → 리뷰 수정  
+- **DELETE** `/api/reviews/{review_id}` → 리뷰 삭제  
+
+---
+
+### 9) 알림 설정
+
+- **GET** `/api/users/me/notifications` → 알림 설정 조회  
+- **PUT** `/api/users/me/notifications` → 알림 등록/수정  
 
 ---
 
 ## 🧰 트러블슈팅
 
-* **Swagger 페이지가 안 열림**: `from flasgger import Swagger` import 확인, `app.config.from_object(Config)` → `Swagger(app, ...)` 순서 유지
-* **에어코리아 403/실패**: `AIRKOREA_SERVICE_KEY`가 *디코딩 키*인지 확인
-* **카카오 401**: `.env`의 `KAKAO_ACCESS_TOKEN`(또는 `KAKAO_ADMIN_KEY`) 값 확인, `Authorization: KakaoAK <키>` 형식
-* **DB 파일 위치 혼동**: `config.py`에서 `SQLALCHEMY_DATABASE_URI` 절대경로 확인(기본: `backend/app.db`)
+* **Swagger UI 안 열림**: `flasgger` import 및 `Swagger(app, ...)` 설정 확인
+* **에어코리아 403 오류**: `.env`의 `AIRKOREA_SERVICE_KEY`가 *디코딩 키*인지 확인
+* **카카오 401 오류**: `.env`의 `KAKAO_ACCESS_TOKEN` 또는 `KAKAO_ADMIN_KEY` 확인
+* **DB 파일 위치 문제**: `config.py`의 `SQLALCHEMY_DATABASE_URI` 절대경로 확인
 
 ---
 
+# 📊 Backend ERD & Service Flows
+
+## 1) ERD (개체-관계 다이어그램)
+
+```mermaid
+erDiagram
+    USER {
+      INTEGER id PK
+      TEXT username
+      TEXT email
+      TEXT password_hash
+      TEXT created_at
+    }
+
+    PET {
+      INTEGER id PK
+      INTEGER user_id FK
+      TEXT name
+      TEXT breed
+      INTEGER age
+      TEXT gender
+      TEXT health_info
+    }
+
+    REVIEW {
+      INTEGER id PK
+      INTEGER user_id FK
+      TEXT cafe_name  
+      INTEGER rating
+      TEXT review_text
+      TEXT created_at
+    }
+
+    CAFE {
+      INTEGER id PK
+      TEXT name
+      REAL latitude
+      REAL longitude
+      TEXT restrictions
+      TEXT operating_hours
+      TEXT price
+      REAL rating
+    }
+
+    SUBSCRIPTION {
+      INTEGER id PK
+      INTEGER user_id FK
+      TEXT pollutant
+      REAL threshold
+      TEXT kakao_id
+      TEXT created_at
+    }
+
+    %% 관계 정의
+    USER ||--o{ PET : "has"
+    USER ||--o{ REVIEW : "writes"
+    CAFE ||--o{ REVIEW : "receives"
+    USER ||--o{ SUBSCRIPTION : "subscribes"
+```
+
+> 참고: `CAFE.name`과 `REVIEW.cafe_name`은 현재 문자열 기반 매핑(코드 기준). 추후 `cafe_id` FK로 정규화하면 무결성이 강화됩니다.
+
+---
+
+## 2) 서비스 흐름도 – 홈 요약(Home Summary)
+
+> `/api/home/summary` 한 번으로 **WHO 등급 + 산책 가능/불가 + 추천(실외/실내)**까지 반환.
+
+```mermaid
+flowchart TD
+    A[Client: /api/home/summary?lat&lon&pm10&pm25&sensitivity] --> B{pm10/pm25 직접 전달?}
+    B -- 예 --> C[WHO 기준 등급/색상 계산]
+    C --> D[민감도(sensitivity) 반영해 OK/CAUTION/AVOID]
+    D --> E{lat/lon 존재?}
+    E -- 예 --> F[실외 추천: walking_places.search_walking_places]
+    E -- 예 --> G[실내 추천: pet_cafe_db.get_cafes_by_location]
+    E -- 아니오 --> H[추천 비우기]
+    F --> I[요약 payload 조립 + 캐시 헤더]
+    G --> I
+    H --> I
+
+    B -- 아니오 --> J[air_summary_service.get_pm_summary(lat, lon)]
+    J -->|서울| K[서울 25개 구 스냅샷 평균]
+    J -->|그 외| L[AirKorea 시도별 최근 1주 평균]
+    K --> C
+    L --> C
+```
+
+---
+
+## 3) 서비스 흐름도 – 정기 알림(Scheduler)
+
+> 임계 초과 시 카카오 알림 발송.
+
+```mermaid
+flowchart TD
+    S[Cron: APScheduler 매시 정각] --> S1[서울 스냅샷 평균(PM10/PM25) 수집]
+    S1 --> S2[customer_db.get_subscribed_customers]
+    S2 --> S3{평균 >= 각 구독자의 threshold?}
+    S3 -- 예 --> S4[kakao_notify.send_kakao_alert]
+    S3 -- 아니오 --> S5[Skip]
+    S4 --> S6[로그/결과 기록]
+    S5 --> S6
+```
+
+---
+
+## 4) 서비스 흐름도 – 카페 리뷰(인증 라우트)
+
+> `@login_required`가 적용된 기본 CRUD.
+
+```mermaid
+flowchart TD
+    R1[Client: GET/POST /api/cafe_reviews/<cafe_name>] --> R2{로그인 세션?}
+    R2 -- 아니오 --> R3[401 Unauthorized]
+    R2 -- 예 --> R4{GET or POST?}
+    R4 -- GET --> R5[SELECT rating, review_text, created_at FROM reviews WHERE cafe_name]
+    R4 -- POST --> R6[유효성 검사(rating int, review text)]
+    R6 -->|OK| R7[INSERT INTO reviews]
+    R6 -->|오류| R8[400 Bad Request]
+    R5 --> R9[JSON 반환]
+    R7 --> R10[201 Created]
+```
