@@ -11,9 +11,10 @@ load_dotenv()
 basedir = os.path.abspath(os.path.dirname(__file__))
 
 class Config:
+    # Flask 기본 설정
     SECRET_KEY = os.getenv("SECRET_KEY", "dev-secret")
 
-    # DB 경로 절대화 (항상 backend/app.db 에 생성되도록)
+    # SQLAlchemy DB (기본은 backend/app.db)
     SQLALCHEMY_DATABASE_URI = os.getenv(
         "DATABASE_URL",
         f"sqlite:///{os.path.join(basedir, 'app.db')}"
@@ -23,7 +24,12 @@ class Config:
     # 외부 API Key
     AIRKOREA_SERVICE_KEY = os.getenv("AIRKOREA_SERVICE_KEY")
     SEOUL_API_KEY = os.getenv("SEOUL_API_KEY")
-    KAKAO_ADMIN_KEY = os.getenv("KAKAO_ADMIN_KEY")
+    KAKAO_ADMIN_KEY = os.getenv("KAKAO_ADMIN_KEY")   # Kakao 지도/좌표 API
+    KAKAO_ACCESS_TOKEN = os.getenv("KAKAO_ACCESS_TOKEN")  # Kakao 알림톡 API
 
     # 프론트엔드 URL
     FRONTEND_URL = os.getenv("FRONTEND_URL", "http://localhost:3000")
+
+    # 기타 경로 (직접 사용하는 모듈에서 가져다 씀)
+    CUSTOMER_DB_PATH = os.getenv("CUSTOMER_DB_PATH")
+    REVIEWS_DB_PATH = os.getenv("REVIEWS_DB_PATH")

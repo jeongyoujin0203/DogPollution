@@ -102,7 +102,7 @@ def create_app():
     # ----- 공통/메인 페이지 -----
     app.register_blueprint(main)
 
-    # ----- 조교님 피드백 반영 기능 -----
+    # ----- 피드백 반영 기능 -----
     app.register_blueprint(location_bp)
     app.register_blueprint(air_bp)
     app.register_blueprint(guides_bp)
@@ -119,3 +119,8 @@ def create_app():
 if __name__ == '__main__':
     app = create_app()
     app.run(host='0.0.0.0', port=5000, debug=True)
+
+from ..data.scheduler import start_scheduler
+with app.app_context():
+    start_scheduler(app)
+

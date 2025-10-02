@@ -1,106 +1,101 @@
-# backend/data/customer_db.py
-import sqlite3
+"""
+고객/구독자 DB 액세스 유틸
+- 경로 우선순위: os.environ -> current_app.config -> data/ 하위 기본 파일
+- 임포트 시 DB 초기화(부작용) 없음: 호출부에서 init_db()를 명시적/등록 시점(record_once)으로 실행
+- 제공 함수:
+    - init_db()
+    - add_subscription(user_id, pollutant, threshold, kakao_id) -> int (row id)
+    - get_subscribed_customers() -> List[dict]
+    - update_subscription(sub_id, **fields)
+    - delete_subscription(sub_id)
+"""
 import os
+import sqlite3
+from typing import List, Dict, Optional
+from flask import current_app
 
-# DB 파일 경로: backend/data/customers.db
-BASE_DIR = os.path.abspath(os.path.dirname(__file__))
-DB_PATH = os.path.join(BASE_DIR, 'customers.db')
+def _db_path() -> str:
+    """
+    DB 경로 결정:
+      1) 환경변수 CUSTOMER_DB_PATH
+      2) app.config['CUSTOMER_DB_PATH']
+      3) data/ 하위 기본 파일
+    """
+    base_default = os.path.join(os.path.abspath(os.path.dirname(__file__)), "customers.db")
+    path = (os.getenv("CUSTOMER_DB_PATH")
+            or (current_app.config.get("CUSTOMER_DB_PATH") if current_app else None)
+            or base_default)
+    os.makedirs(os.path.dirname(path), exist_ok=True)
+    return path
 
-def init_db():
+def init_db() -> None:
     """
-    데이터베이스 초기화: customers 테이블 생성
+    테이블 생성 (존재하면 무시)
     """
-    conn = sqlite3.connect(DB_PATH)
-    c = conn.cursor()
-    c.execute('''
-        CREATE TABLE IF NOT EXISTS customers (
-            id INTEGER PRIMARY KEY AUTOINCREMENT,
-            name TEXT NOT NULL,
-            kakao_token TEXT NOT NULL,
-            pollutant TEXT NOT NULL,     -- 'PM10' or 'PM25'
-            threshold INTEGER NOT NULL,  -- 알림 임계치
-            active INTEGER NOT NULL DEFAULT 1  -- 구독 활성화 여부 (1=활성, 0=비활성)
-        )
-    ''')
-    conn.commit()
-    conn.close()
+    with sqlite3.connect(_db_path()) as conn:
+        c = conn.cursor()
+        # 구독자/알림 설정 테이블
+        c.execute("""
+            CREATE TABLE IF NOT EXISTS subscriptions (
+                id INTEGER PRIMARY KEY AUTOINCREMENT,
+                user_id INTEGER,
+                pollutant TEXT NOT NULL,   -- 'PM10' | 'PM25'
+                threshold REAL NOT NULL,   -- 임계값
+                kakao_id TEXT,             -- 카카오 수신자 식별자 등
+                created_at TEXT DEFAULT (datetime('now'))
+            )
+        """)
+        conn.commit()
 
-def add_customer(name, kakao_token, pollutant, threshold):
+def add_subscription(user_id: Optional[int],
+                     pollutant: str,
+                     threshold: float,
+                     kakao_id: Optional[str]) -> int:
     """
-    고객 등록 및 구독 설정 추가
+    구독 추가
     """
-    conn = sqlite3.connect(DB_PATH)
-    c = conn.cursor()
-    c.execute('''
-        INSERT INTO customers (name, kakao_token, pollutant, threshold)
-        VALUES (?, ?, ?, ?)
-    ''', (name, kakao_token, pollutant, threshold))
-    conn.commit()
-    customer_id = c.lastrowid
-    conn.close()
-    return customer_id
+    with sqlite3.connect(_db_path()) as conn:
+        c = conn.cursor()
+        c.execute("""
+            INSERT INTO subscriptions (user_id, pollutant, threshold, kakao_id)
+            VALUES (?,?,?,?)
+        """, (user_id, pollutant, float(threshold), kakao_id))
+        conn.commit()
+        return int(c.lastrowid)
 
-def update_subscription(customer_id, pollutant=None, threshold=None, active=None):
+def get_subscribed_customers() -> List[Dict]:
     """
-    구독 설정 수정 (오직 전달된 필드만)
+    알림 작업에서 사용하는 구독자 목록 반환
+    반환 형태 예:
+      [{"id": 1, "user_id": 10, "pollutant": "PM10", "threshold": 80.0, "kakao_id": "abc"}, ...]
     """
-    conn = sqlite3.connect(DB_PATH)
-    c = conn.cursor()
-    fields = []
-    args = []
-    if pollutant is not None:
-        fields.append('pollutant = ?')
-        args.append(pollutant)
-    if threshold is not None:
-        fields.append('threshold = ?')
-        args.append(threshold)
-    if active is not None:
-        fields.append('active = ?')
-        args.append(1 if active else 0)
-    args.append(customer_id)
-    c.execute(f'''
-        UPDATE customers
-        SET {', '.join(fields)}
-        WHERE id = ?
-    ''', args)
-    conn.commit()
-    conn.close()
+    with sqlite3.connect(_db_path()) as conn:
+        conn.row_factory = sqlite3.Row
+        c = conn.cursor()
+        c.execute("""SELECT id, user_id, pollutant, threshold, kakao_id
+                     FROM subscriptions""")
+        rows = c.fetchall()
+    return [dict(r) for r in rows]
 
-def get_customer(customer_id):
+def update_subscription(sub_id: int, **fields) -> bool:
     """
-    단일 고객 정보 조회
+    구독 수정 (pollutant/threshold/kakao_id 중 일부 갱신)
     """
-    conn = sqlite3.connect(DB_PATH)
-    c = conn.cursor()
-    c.execute('SELECT id, name, kakao_token, pollutant, threshold, active FROM customers WHERE id = ?', (customer_id,))
-    row = c.fetchone()
-    conn.close()
-    if not row:
-        return None
-    return dict(
-        id=row[0], name=row[1], kakao_token=row[2],
-        pollutant=row[3], threshold=row[4], active=bool(row[5])
-    )
+    allowed = {"pollutant", "threshold", "kakao_id", "user_id"}
+    updates = {k: v for k, v in fields.items() if k in allowed}
+    if not updates:
+        return False
+    sets = ", ".join([f"{k}=?" for k in updates.keys()])
+    values = list(updates.values()) + [sub_id]
+    with sqlite3.connect(_db_path()) as conn:
+        c = conn.cursor()
+        c.execute(f"UPDATE subscriptions SET {sets} WHERE id=?", values)
+        conn.commit()
+        return c.rowcount > 0
 
-def delete_customer(customer_id):
-    """
-    구독 해지 (active = 0)
-    """
-    update_subscription(customer_id, active=False)
-
-def get_subscribed_customers():
-    """
-    활성화(active=1)된 모든 고객 리스트 반환
-    """
-    conn = sqlite3.connect(DB_PATH)
-    c = conn.cursor()
-    c.execute('SELECT id, name, kakao_token, pollutant, threshold FROM customers WHERE active = 1')
-    rows = c.fetchall()
-    conn.close()
-    return [
-        dict(id=r[0], name=r[1], kakao_token=r[2], pollutant=r[3], threshold=r[4])
-        for r in rows
-    ]
-
-# 모듈 임포트 시 DB 초기화
-init_db()
+def delete_subscription(sub_id: int) -> bool:
+    with sqlite3.connect(_db_path()) as conn:
+        c = conn.cursor()
+        c.execute("DELETE FROM subscriptions WHERE id=?", (sub_id,))
+        conn.commit()
+        return c.rowcount > 0
